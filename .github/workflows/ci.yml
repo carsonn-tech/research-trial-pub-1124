@@ -1,5 +1,5 @@
 name: ci
-on: [pull_request, merge_group]
+on: [pull_request, merge_group, workflow_dispatch]
 jobs:
   t:
     runs-on: ubuntu-latest

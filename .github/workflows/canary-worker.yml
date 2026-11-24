@@ -1,0 +1,41 @@
+name: canary-worker
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        required: true
+      stall:
+        default: 'none'
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  statuses: write
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    steps:
+      - name: stall at worker
+        if: inputs.stall == 'worker'
+        run: echo "forced stall at worker stage; no PR is opened"
+      - uses: actions/checkout@v4
+        if: inputs.stall != 'worker'
+      - name: stub worker opens the PR
+        if: inputs.stall != 'worker'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          N: ${{ inputs.issue }}
+          STALL: ${{ inputs.stall }}
+        run: |
+          set -e
+          git config user.name "canary-worker"; git config user.email "canary@example.invalid"
+          b="canary/$N"; git switch -c "$b"
+          mkdir -p canary; echo "canary $N $(date -u +%FT%TZ)" > "canary/$N.txt"
+          git add "canary/$N.txt"; git commit -qm "canary $N"; git push -q origin "$b"
+          title="canary $N"; [ "$STALL" = deploy ] && title="canary $N [stall=deploy]"
+          pr=$(gh pr create -B main -H "$b" --title "$title" --body "Fixes #$N")
+          pn=${pr##*/}; echo "pr $pn"
+          sleep 20
+          echo "TRAP: pull_request ci runs on $b after PR open by GITHUB_TOKEN: $(gh run list --branch "$b" --workflow ci.yml --event pull_request --json databaseId -q length)"
+          gh workflow run ci.yml --ref "$b"
+          gh workflow run canary-review.yml -f pr=$pn -f stall=$STALL
