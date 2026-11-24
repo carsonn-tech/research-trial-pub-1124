@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
   deployments: write
+  issues: write
+  pull-requests: read
 jobs:
   deploy:
     if: inputs.stall != 'deploy'
@@ -19,3 +21,5 @@ jobs:
         run: |
           id=$(gh api -X POST repos/$GITHUB_REPOSITORY/deployments -f ref=$(gh pr view ${{ inputs.pr }} -R $GITHUB_REPOSITORY --json mergeCommit -q .mergeCommit.oid) -f environment=live -F auto_merge=false -F 'required_contexts[]' -f description="canary deploy marker" -q .id)
           gh api -X POST repos/$GITHUB_REPOSITORY/deployments/$id/statuses -f state=success -f description="live marker for PR ${{ inputs.pr }}"
+          n=$(gh pr view ${{ inputs.pr }} -R $GITHUB_REPOSITORY --json body -q .body | grep -oE 'Fixes #[0-9]+' | grep -oE '[0-9]+')
+          [ -n "$n" ] && gh issue close $n -R $GITHUB_REPOSITORY -c "closed by deploy marker (native Fixes link did not fire for a token-made merge)"
