@@ -1,0 +1,9 @@
+name: trap-probe
+on:
+  issues:
+    types: [opened, labeled]
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "issue event ${{ github.event.action }} by ${{ github.actor }}"
