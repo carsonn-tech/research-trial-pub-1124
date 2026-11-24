@@ -23,7 +23,7 @@ pull_request_rules:
         add: [conflict]
   - name: stale close
     conditions:
-      - updated-at<3 minutes ago
+      - updated-at<30 days ago
       - -label=keep-open
       - -closed
       - -merged
