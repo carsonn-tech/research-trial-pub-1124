@@ -1,0 +1,27 @@
+name: canary-file
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+    inputs:
+      stall:
+        description: 'stage to stall: none, worker, review, merge, deploy'
+        default: 'none'
+permissions:
+  contents: read
+  issues: write
+  actions: write
+jobs:
+  file:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          STALL: ${{ inputs.stall || 'none' }}
+        run: |
+          url=$(gh issue create -R "$GITHUB_REPOSITORY" --title "canary $(date -u +%F-%H%M%S)" \
+            --label canary --label size:XS --label status:ready \
+            --body "Synthetic daily canary. Done test: file canary/<n>.txt exists on main and a live marker is recorded. stall=$STALL")
+          n=${url##*/}
+          echo "issue $n"
+          gh workflow run canary-worker.yml -R "$GITHUB_REPOSITORY" -f issue=$n -f stall=$STALL
