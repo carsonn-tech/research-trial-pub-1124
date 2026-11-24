@@ -35,9 +35,11 @@ jobs:
           title="canary $N"; [ "$STALL" = deploy ] && title="canary $N [stall=deploy]"
           pr=$(gh pr create -B main -H "$b" --title "$title" --body "Fixes #$N")
           pn=${pr##*/}; echo "pr $pn"
-          sleep 20
-          echo "TRAP: pull_request ci runs on $b after PR open by GITHUB_TOKEN: $(gh run list --branch "$b" --workflow ci.yml --event pull_request --json databaseId -q length)"
-          rid=$(gh run list --branch "$b" --workflow ci.yml --event pull_request --json databaseId,conclusion -q '.[]|select(.conclusion=="action_required")|.databaseId' | head -1)
-          echo "pending-approval run: $rid"
+          rid=""
+          for i in $(seq 1 24); do
+            rid=$(gh run list --branch "$b" --workflow ci.yml --event pull_request --json databaseId,conclusion -q '.[]|select(.conclusion=="action_required")|.databaseId' | head -1)
+            [ -n "$rid" ] && break; sleep 5
+          done
+          echo "TRAP: bot-opened PR ci run needs approval: ${rid:-none}"
           [ -n "$rid" ] && gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/$rid/approve && echo "approved run $rid with GITHUB_TOKEN"
           gh workflow run canary-review.yml -f pr=$pn -f stall=$STALL
