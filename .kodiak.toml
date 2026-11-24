@@ -1,0 +1,6 @@
+version = 1
+[merge]
+automerge_label = "kodiak-merge"
+method = "squash"
+[update]
+autoupdate_label = "autoupdate"
