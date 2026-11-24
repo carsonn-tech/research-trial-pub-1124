@@ -1,0 +1,31 @@
+name: canary-review
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        required: true
+      stall:
+        default: 'none'
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: stall at review
+        if: inputs.stall == 'review'
+        run: echo "forced stall at review stage; no approval status"
+      - name: review bot approves (status) and arms merge
+        if: inputs.stall != 'review'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          STALL: ${{ inputs.stall }}
+        run: |
+          set -e
+          sha=$(gh pr view $PR --json headRefOid -q .headRefOid)
+          gh api -X POST repos/$GITHUB_REPOSITORY/statuses/$sha -f state=success -f context=review-bot -f description="stub review: approved"
+          if [ "$STALL" = merge ]; then echo "forced stall at merge stage: not armed"; exit 0; fi
+          gh pr merge $PR --auto --squash
