@@ -1,0 +1,34 @@
+queue_rules:
+  - name: default
+    queue_conditions:
+      - label=queue
+    merge_conditions:
+      - check-success=t
+    merge_method: squash
+pull_request_rules:
+  - name: update behind
+    conditions:
+      - -conflict
+      - -draft
+      - "#commits-behind>0"
+    actions:
+      update:
+  - name: conflict notice
+    conditions:
+      - conflict
+    actions:
+      comment:
+        message: "mergify: conflict with base, needs a fix"
+      label:
+        add: [conflict]
+  - name: stale close
+    conditions:
+      - updated-at<3 minutes ago
+      - -label=keep-open
+      - -closed
+      - -merged
+    actions:
+      comment:
+        message: "mergify: idle, closing"
+      close:
+        message: "idle"
