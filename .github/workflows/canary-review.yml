@@ -25,7 +25,7 @@ jobs:
           STALL: ${{ inputs.stall }}
         run: |
           set -e
-          sha=$(gh pr view $PR --json headRefOid -q .headRefOid)
+          sha=$(gh pr view $PR -R $GITHUB_REPOSITORY --json headRefOid -q .headRefOid)
           gh api -X POST repos/$GITHUB_REPOSITORY/statuses/$sha -f state=success -f context=review-bot -f description="stub review: approved"
           if [ "$STALL" = merge ]; then echo "forced stall at merge stage: not armed"; exit 0; fi
-          gh pr merge $PR --auto --squash
+          gh pr merge $PR -R $GITHUB_REPOSITORY --auto --squash
