@@ -37,5 +37,7 @@ jobs:
           pn=${pr##*/}; echo "pr $pn"
           sleep 20
           echo "TRAP: pull_request ci runs on $b after PR open by GITHUB_TOKEN: $(gh run list --branch "$b" --workflow ci.yml --event pull_request --json databaseId -q length)"
-          gh workflow run ci.yml --ref "$b"
+          rid=$(gh run list --branch "$b" --workflow ci.yml --event pull_request --json databaseId,conclusion -q '.[]|select(.conclusion=="action_required")|.databaseId' | head -1)
+          echo "pending-approval run: $rid"
+          [ -n "$rid" ] && gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/$rid/approve && echo "approved run $rid with GITHUB_TOKEN"
           gh workflow run canary-review.yml -f pr=$pn -f stall=$STALL
